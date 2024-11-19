@@ -211,6 +211,5 @@ def generar_qr():
     finally:
         conexiondb.close()
 
-
 if __name__ == '__main__':
     app.run()
