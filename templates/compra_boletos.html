@@ -1,0 +1,73 @@
+{% block CompraBoletos %}
+<div style="width: 80%; margin: 20px auto; font-family: Arial, sans-serif; border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+    <div style="display: flex; align-items: center;">
+        <div style="flex: 1; text-align: center;">
+            <img src="{{ request.args.get('imgp') }}" alt="Cartel de {{ request.args.get('nombrep') }}" style="width: 200px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+        <div style="flex: 2; margin-left: 20px;">
+            <h1>{{ request.args.get('nombrep') }}</h1>
+            <h2>Descripción:</h2>
+            <p>{{ request.args.get('descripcionp') }}</p>
+            <h2>Calificación:</h2>
+            <p>{{ request.args.get('calificacionp') }}</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('procesar_compra') }}" style="margin-top: 20px;">
+        <input type="hidden" name="pelicula_id" value="{{ pelicula['idp'] }}">
+        <table border="1" style="width: 100%; text-align: center; border-collapse: collapse;">
+            <tr>
+                <th>Tipo de Boleto</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+            </tr>
+            <tr>
+                <td>Adulto</td>
+                <td>$10</td>
+                <td>
+                    <button type="button" onclick="modificarCantidad('adulto', -1)">-</button>
+                    <span id="cantidad-adulto">0</span>
+                    <button type="button" onclick="modificarCantidad('adulto', 1)">+</button>
+                    <input type="hidden" id="input-adulto" name="cantidad_adulto" value="0">
+                </td>
+            </tr>
+            <tr>
+                <td>Niños</td>
+                <td>$7</td>
+                <td>
+                    <button type="button" onclick="modificarCantidad('ninos', -1)">-</button>
+                    <span id="cantidad-ninos">0</span>
+                    <button type="button" onclick="modificarCantidad('ninos', 1)">+</button>
+                    <input type="hidden" id="input-ninos" name="cantidad_ninos" value="0">
+                </td>
+            </tr>
+            <tr>
+                <td>Tercera Edad</td>
+                <td>$5</td>
+                <td>
+                    <button type="button" onclick="modificarCantidad('tercera', -1)">-</button>
+                    <span id="cantidad-tercera">0</span>
+                    <button type="button" onclick="modificarCantidad('tercera', 1)">+</button>
+                    <input type="hidden" id="input-tercera" name="cantidad_tercera" value="0">
+                </td>
+            </tr>
+        </table>
+        <div style="text-align: right; margin-top: 20px;">
+            <button type="submit" style="padding: 10px 20px; font-size: 1em; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Siguiente</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function modificarCantidad(tipo, cantidad) {
+        const cantidadSpan = document.getElementById(`cantidad-${tipo}`);
+        const cantidadInput = document.getElementById(`input-${tipo}`);
+        let nuevaCantidad = parseInt(cantidadSpan.textContent) + cantidad;
+
+        if (nuevaCantidad < 0) nuevaCantidad = 0;
+
+        cantidadSpan.textContent = nuevaCantidad;
+        cantidadInput.value = nuevaCantidad;
+    }
+</script>
+{% endblock %}

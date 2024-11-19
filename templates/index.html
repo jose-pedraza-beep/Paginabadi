@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../stiles.css/style.css">
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <img src="" alt="Logo">
+            <select id="opciones" name="opciones">
+                <option value="" disabled selected>Seleccione una opción</option>
+                <option value="opcion1">Menchaca</option>
+                <option value="opcion2">Cerrito colorado</option>
+                <option value="opcion3">Valdio</option>
+            </select>
+            {% if current_user.is_authenticated %}
+            <span>
+                Usuario: {{ current_user.nombre }}
+                <a href="/logout">Cerrar sesión</a>
+                <!-- Botón "Comprobar boletos" -->
+                <form action="/generar_qr" method="get" style="display: inline;">
+                    <button type="submit" style="margin-left: 10px;">Comprobar boletos</button>
+                </form>
+            </span>
+            {% else %}
+                <a href="/login">Iniciar sesión</a>
+            {% endif %}
+        </nav>
+        <a href="/Peliculas">Peliculas</a> |
+        <a href="/Alimentos">Alimentos</a> |
+        <a href="/Promociones">Promociones</a> |
+        <a href="/Proximamente">Proximamente</a>
+    </header>
+
+    <main>
+        {% block Peliculas %}{% endblock %}
+        {% block CompraBoletos %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="enlaces-footer">
+            <a href="/cartelera">Cartelera</a> |
+            <a href="/quienes_somos">Quiénes Somos</a> |
+            <a href="/legales">Legales</a> |
+            <a href="/contacto">Contacto</a>
+        </div>
+    </footer>
+</body>
+</html>

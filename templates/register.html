@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<section>
+    <form action="/register" method="POST">
+        {{ msj }}
+        <br>
+        <input type="text" name="reg_nombre" placeholder="Nombre" required><br>
+        <input type="text" name="reg_apell" placeholder="Apellidos" required><br>
+        <input type="text" name="reg_tel" placeholder="telefono" required><br>
+        <input type="email" name="reg_mail" placeholder="Correo" required><br>
+        <input type="password" name="reg_pass" placeholder="Contraseña" required><br>
+        <input type="submit" value="Registrar">
+    </form>
+    <a>Ya tines cuenta? </a>
+    <a href="/login">Iniciar sesión</a>
+</section>
+{% endblock %}
