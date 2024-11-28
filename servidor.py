@@ -158,9 +158,16 @@ def procesar_compra():
         if conexiondb.rowcount == 0:
             return "No hay suficientes lugares disponibles para esta película.", 400
 
-        # Aumentar el número de boletos del usuario actual
-        sql_aumentar_boletos = "UPDATE usuarios SET boletosu = boletosu + %s WHERE id_user = %s"
-        conexiondb.execute(sql_aumentar_boletos, (total_boletos, current_user.id))
+        # Actualizar el número de boletos del usuario actual
+        sql_aumentar_boletos = """
+            UPDATE usuarios 
+            SET boletosu = boletosu + %s, 
+                boletos_adultos = boletos_adultos + %s,
+                boletos_ninos = boletos_ninos + %s,
+                boletos_tercera = boletos_tercera + %s
+            WHERE id_user = %s
+        """
+        conexiondb.execute(sql_aumentar_boletos, (total_boletos, cantidad_adulto, cantidad_ninos, cantidad_tercera, current_user.id))
 
         db.commit()
         return redirect(url_for('Peliculas'))
@@ -170,6 +177,8 @@ def procesar_compra():
     finally:
         conexiondb.close()
 
+import base64  # Asegúrate de importar este módulo
+
 @app.route('/generar_qr', methods=['GET'])
 @login_required
 def generar_qr():
@@ -177,15 +186,21 @@ def generar_qr():
         conexiondb = db.cursor()
 
         # Obtener el número de boletos del usuario actual
-        sql_boletos = "SELECT boletosu FROM usuarios WHERE id_user = %s"
+        sql_boletos = "SELECT boletosu, boletos_adultos, boletos_ninos, boletos_tercera FROM usuarios WHERE id_user = %s"
         conexiondb.execute(sql_boletos, (current_user.id,))
         resultado = conexiondb.fetchone()
 
         if resultado and resultado[0] > 0:
-            boletos = resultado[0]
+            boletos, adultos, ninos, tercera = resultado
 
             # Generar el contenido del QR
-            contenido_qr = f"Usuario: {current_user.nombre}, Boletos: {boletos}"
+            contenido_qr = (
+                f"Usuario: {current_user.nombre}\n"
+                f"Boletos totales: {boletos}\n"
+                f"- Adultos: {adultos}\n"
+                f"- Niños: {ninos}\n"
+                f"- Tercera Edad: {tercera}"
+            )
             qr = qrcode.QRCode(box_size=10, border=4)
             qr.add_data(contenido_qr)
             qr.make(fit=True)
@@ -196,13 +211,54 @@ def generar_qr():
             img.save(buf)
             buf.seek(0)
 
+            # Convertir la imagen a formato Base64
+            qr_data = base64.b64encode(buf.getvalue()).decode('utf-8')
+
             # Eliminar los boletos del usuario después de generar el QR
-            sql_eliminar_boletos = "UPDATE usuarios SET boletosu = 0 WHERE id_user = %s"
+            sql_eliminar_boletos = """
+                UPDATE usuarios 
+                SET boletosu = 0, boletos_adultos = 0, boletos_ninos = 0, boletos_tercera = 0
+                WHERE id_user = %s
+            """
             conexiondb.execute(sql_eliminar_boletos, (current_user.id,))
             db.commit()
 
-            # Enviar el QR al usuario
-            return send_file(buf, mimetype='image/png', download_name='qr_boletos.png')
+            # Renderizar la página del QR con temporizador
+            return f"""
+            <html>
+            <head>
+                <meta http-equiv="refresh" content="20;url={url_for('Peliculas')}">
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        padding: 50px;
+                    }}
+                    .contenedor {{
+                        border: 1px solid #ccc;
+                        padding: 20px;
+                        border-radius: 8px;
+                        display: inline-block;
+                    }}
+                    .mensaje {{
+                        margin-top: 20px;
+                        font-size: 1.2em;
+                        color: #555;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="contenedor">
+                    <h1>Código QR generado</h1>
+                    <p>Escanea el código para confirmar la compra.</p>
+                    <img src="data:image/png;base64,{qr_data}" alt="Código QR">
+                    <div class="mensaje">
+                        La página se cerrará automáticamente en 20 segundos...
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
         else:
             return "No tienes boletos para comprobar.", 400
     except mysqlcon.Error as e:
@@ -210,6 +266,45 @@ def generar_qr():
         return f"Error al generar el QR: {str(e)}", 500
     finally:
         conexiondb.close()
+
+@app.route('/mostrar_boletos', methods=['POST'])
+def mostrar_boletos():
+    datos_qr = request.form.get('datos_qr')
+    if not datos_qr:
+        return "No se recibieron datos del QR.", 400
+
+    # Parsear los datos del QR para mostrar en pantalla
+    detalles = datos_qr.replace('\n', '<br>')
+    return f"""
+    <html>
+    <head>
+        <meta http-equiv="refresh" content="10"> <!-- Cerrar automáticamente después de 10 segundos -->
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 50px;
+            }}
+            .contenedor {{
+                border: 1px solid #ccc;
+                padding: 20px;
+                border-radius: 8px;
+                display: inline-block;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="contenedor">
+            <h1>Información de Boletos</h1>
+            <p>{detalles}</p>
+            <p>Esta ventana se cerrará automáticamente.</p>
+        </div>
+    </body>
+    </html>
+    """
+@app.route('/Alimentos')
+def Alimentos():
+ return render_template("Alimentos.html")
 
 if __name__ == '__main__':
     app.run()
