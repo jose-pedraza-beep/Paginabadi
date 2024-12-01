@@ -223,42 +223,12 @@ def generar_qr():
             conexiondb.execute(sql_eliminar_boletos, (current_user.id,))
             db.commit()
 
-            # Renderizar la página del QR con temporizador
-            return f"""
-            <html>
-            <head>
-                <meta http-equiv="refresh" content="20;url={url_for('Peliculas')}">
-                <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        text-align: center;
-                        padding: 50px;
-                    }}
-                    .contenedor {{
-                        border: 1px solid #ccc;
-                        padding: 20px;
-                        border-radius: 8px;
-                        display: inline-block;
-                    }}
-                    .mensaje {{
-                        margin-top: 20px;
-                        font-size: 1.2em;
-                        color: #555;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="contenedor">
-                    <h1>Código QR generado</h1>
-                    <p>Escanea el código para confirmar la compra.</p>
-                    <img src="data:image/png;base64,{qr_data}" alt="Código QR">
-                    <div class="mensaje">
-                        La página se cerrará automáticamente en 20 segundos...
-                    </div>
-                </div>
-            </body>
-            </html>
-            """
+            # Renderizar la plantilla HTML para mostrar el QR
+            return render_template(
+                'generar_qr.html', 
+                qr_data=qr_data, 
+                redirect_url=url_for('Peliculas')
+            )
         else:
             return "No tienes boletos para comprobar.", 400
     except mysqlcon.Error as e:
@@ -275,36 +245,16 @@ def mostrar_boletos():
 
     # Parsear los datos del QR para mostrar en pantalla
     detalles = datos_qr.replace('\n', '<br>')
-    return f"""
-    <html>
-    <head>
-        <meta http-equiv="refresh" content="10"> <!-- Cerrar automáticamente después de 10 segundos -->
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                text-align: center;
-                padding: 50px;
-            }}
-            .contenedor {{
-                border: 1px solid #ccc;
-                padding: 20px;
-                border-radius: 8px;
-                display: inline-block;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="contenedor">
-            <h1>Información de Boletos</h1>
-            <p>{detalles}</p>
-            <p>Esta ventana se cerrará automáticamente.</p>
-        </div>
-    </body>
-    </html>
-    """
+    return render_template('mostrar_boletos.html', detalles=detalles)
+
+if __name__ == '__main__':
+    app.run(debug=True)
 @app.route('/Alimentos')
 def Alimentos():
  return render_template("Alimentos.html")
 
+@app.route('/Proximanmente')
+def prox():
+    return render_template("Proximamente.html")
 if __name__ == '__main__':
     app.run()

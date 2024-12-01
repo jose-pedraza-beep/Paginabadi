@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="10"> <!-- Cerrar automáticamente después de 10 segundos -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Información de Boletos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .contenedor {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <h1>Información de Boletos</h1>
+        <p>{{ detalles|safe }}</p>
+        <p>Esta ventana se cerrará automáticamente.</p>
+    </div>
+</body>
+</html>

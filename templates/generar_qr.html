@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="20;url={{ redirect_url }}">
+    <title>Código QR generado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .contenedor {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .mensaje {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <h1>Código QR generado</h1>
+        <p>Escanea el código para confirmar la compra.</p>
+        <img src="data:image/png;base64,{{ qr_data }}" alt="Código QR">
+        <div class="mensaje">
+            La página se cerrará automáticamente en 20 segundos...
+        </div>
+    </div>
+</body>
+</html>
