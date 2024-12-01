@@ -1,63 +1,45 @@
 {% extends "index.html" %}
 {% block Proximamente %}
-<div id="Proximamente-container">
+<div id="proximamente-container">
     <table border="1px">
         <tr>
-            <th>Ranking de Películas</th>
-            <th>No</th>
-            <th>Fecha</th>
+            <th>Nombre</th>
+            <th>Fecha de salida</th>
             <th>Descripción</th>
             <th>Cartel</th>
-            <th>Calificación</th>
-            <th>Lugares disponibles</th>
         </tr>
         {% for campo in listap %}
         <tr>
-            <td>{{ campo.idp }}</td>
             <td>{{ campo.nombrep }}</td>
             <td>{{ campo.fechap }}</td>
             <td>{{ campo.descripcionp }}</td>
             <td>
-                <img src="{{ campo.imgp }}" alt="Cartel de {{ campo.nombrep }}" style="cursor: pointer; width: 100px;" onclick="seleccionarPelicula('{{ campo.idp }}', '{{ campo.calificacionp }}', '{{ campo.nombrep }}', '{{ campo.imgp }}', '{{ campo.descripcionp }}')">
+                <img src="{{ campo.imgp }}" alt="Cartel de {{ campo.nombrep }}" 
+                     style="cursor: pointer; width: 100px;" 
+                     onclick="mostrarInformacion('{{ campo.nombrep }}', '{{ campo.fechap }}', '{{ campo.descripcionp }}', '{{ campo.imgp }}')">
             </td>
-            <td>{{ campo.calificacionp }}</td>
-            <td>{{ campo.cupo }}</td>
         </tr>
         {% endfor %}
     </table>
 </div>
 
-<div id="calificacion-seleccionada" style="margin-top: 20px; font-size: 1.5em;">
+<div id="info-seleccionada" style="margin-top: 20px; font-size: 1.2em; display: none;">
     <strong>Película seleccionada:</strong> <span id="nombre-pelicula">N/A</span><br>
-    <strong>Calificación:</strong> <span id="calificacion-texto">N/A</span><br>
+    <strong>Fecha de estreno:</strong> <span id="fecha-pelicula">N/A</span><br>
+    <strong>Descripción:</strong> <p id="descripcion-pelicula">N/A</p>
     <strong>Cartel:</strong><br>
-    <img id="imagen-seleccionada" src="" alt="Imagen seleccionada" style="width: 200px; display: none;">
-    <br><br>
-    <button id="boton-comprar" style="cursor: pointer; padding: 10px 20px; font-size: 1em; background-color: #4CAF50; color: white; border: none; border-radius: 5px; display: none;" onclick="comprarPelicula()">Comprar</button>
+    <img id="imagen-seleccionada" src="" alt="Imagen seleccionada" style="width: 200px; display: block;">
 </div>
 
 <script>
-    let peliculaSeleccionada = {};
-
-    function seleccionarPelicula(id, calificacion, nombre, imgSrc, descripcion) {
-        peliculaSeleccionada = { id, calificacion, nombre, imgSrc, descripcion };
-        document.getElementById('calificacion-texto').textContent = calificacion;
+    function mostrarInformacion(nombre, fecha, descripcion, imgSrc) {
+        // Mostrar la información de la película seleccionada
         document.getElementById('nombre-pelicula').textContent = nombre;
+        document.getElementById('fecha-pelicula').textContent = fecha;
+        document.getElementById('descripcion-pelicula').textContent = descripcion;
         const imagenSeleccionada = document.getElementById('imagen-seleccionada');
         imagenSeleccionada.src = imgSrc;
-        imagenSeleccionada.style.display = 'block';
-        document.getElementById('boton-comprar').style.display = 'inline-block';
-    }
-
-    function comprarPelicula() {
-        if (peliculaSeleccionada.id) {
-            const { id, nombre, imgSrc, descripcion, calificacion } = peliculaSeleccionada;
-            // Redirige a la ruta "compra_boletos" con los detalles de la película
-            window.location.href = `/compra_boletos/${id}?nombrep=${encodeURIComponent(nombre)}&imgp=${encodeURIComponent(imgSrc)}&descripcionp=${encodeURIComponent(descripcion)}&calificacionp=${encodeURIComponent(calificacion)}`;
-        } else {
-            alert('Por favor, selecciona una película antes de comprar.');
-        }
+        document.getElementById('info-seleccionada').style.display = 'block';
     }
 </script>
 {% endblock %}
-

@@ -249,12 +249,171 @@ def mostrar_boletos():
 
 if __name__ == '__main__':
     app.run(debug=True)
-@app.route('/Alimentos')
-def Alimentos():
- return render_template("Alimentos.html")
 
-@app.route('/Proximanmente')
-def prox():
-    return render_template("Proximamente.html")
+@app.route('/Alimentos')
+@login_required
+def Alimentos():
+    conexiondb = db.cursor()
+
+    # Consulta para obtener la lista de alimentos
+    sql_alimentos = """
+        SELECT id, nombre, descripcion, precio, img_url 
+        FROM alimentos
+    """
+    conexiondb.execute(sql_alimentos)
+    res_alimentos = conexiondb.fetchall()
+
+    # Consulta para obtener el carrito del usuario actual
+    sql_carrito = """
+        SELECT c.id, a.nombre, c.cantidad, (a.precio * c.cantidad) AS total
+        FROM carrito c
+        JOIN alimentos a ON c.id_alimento = a.id
+        WHERE c.id_usuario = %s
+    """
+    conexiondb.execute(sql_carrito, (current_user.id,))
+    res_carrito = conexiondb.fetchall()
+    conexiondb.close()
+
+    # Procesar datos de alimentos
+    alimentos = [
+        { 'id': campo[0],'nombre': campo[1],'descripcion': campo[2],'precio': campo[3],'img_url': campo[4]}
+        for campo in res_alimentos
+    ]
+
+    # Procesar datos del carrito
+    carrito = [
+        { 'id': campo[0],'nombre': campo[1],'cantidad': campo[2],'total': campo[3]}
+        for campo in res_carrito
+    ]
+
+    return render_template("Alimentos.html", alimentos=alimentos, carrito=carrito)
+
+
+from flask import request, jsonify
+
+@app.route('/agregar_carrito', methods=['POST'])
+@login_required
+def agregar_carrito():
+    data = request.get_json()  # Leer datos enviados en formato JSON
+    id_alimento = data.get('id_alimento')
+
+    if not id_alimento:
+        return jsonify({'error': 'ID del alimento no proporcionado'}), 400
+
+    try:
+        conexiondb = db.cursor()
+
+        sql_verificar = """
+            SELECT id, cantidad 
+            FROM carrito 
+            WHERE id_usuario = %s AND id_alimento = %s
+        """
+        conexiondb.execute(sql_verificar, (current_user.id, id_alimento))
+        item = conexiondb.fetchone()
+
+        if item:
+            # Si existe, aumentar cantidad
+            sql_actualizar = """
+                UPDATE carrito 
+                SET cantidad = cantidad + 1 
+                WHERE id = %s
+            """
+            conexiondb.execute(sql_actualizar, (item[0],))
+        else:
+            # Si no existe, agregarlo al carrito
+            sql_insertar = """
+                INSERT INTO carrito (id_usuario, id_alimento, cantidad) 
+                VALUES (%s, %s, 1)
+            """
+            conexiondb.execute(sql_insertar, (current_user.id, id_alimento))
+
+        db.commit()
+        return jsonify({'success': 'Producto agregado al carrito'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conexiondb.close()
+@app.route('/modificar_cantidad_carrito', methods=['PUT'])
+@login_required
+def modificar_cantidad_carrito():
+    data = request.get_json()
+    id_carrito = data.get('id_carrito')
+    nueva_cantidad = data.get('cantidad')
+
+    if not id_carrito or not nueva_cantidad or int(nueva_cantidad) < 1:
+        return jsonify({'error': 'Datos inválidos'}), 400
+
+    try:
+        conexiondb = db.cursor()
+
+        # Actualizar la cantidad del producto en el carrito
+        sql_actualizar = """
+            UPDATE carrito 
+            SET cantidad = %s 
+            WHERE id = %s AND id_usuario = %s
+        """
+        conexiondb.execute(sql_actualizar, (nueva_cantidad, id_carrito, current_user.id))
+        db.commit()
+
+        return jsonify({'success': 'Cantidad modificada'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conexiondb.close()
+
+
+@app.route('/eliminar_carrito/<int:id_carrito>', methods=['DELETE'])
+@login_required
+def eliminar_carrito(id_carrito):
+    try:
+        conexiondb = db.cursor()
+
+        # Eliminar producto del carrito
+        sql_eliminar = "DELETE FROM carrito WHERE id = %s AND id_usuario = %s"
+        conexiondb.execute(sql_eliminar, (id_carrito, current_user.id))
+        db.commit()
+
+        return jsonify({'success': 'Producto eliminado del carrito'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conexiondb.close()
+
+
+
+
+@app.route('/Proximamente')
+def Proximamente():
+    try:
+        # Crear cursor para la conexión a la base de datos
+        conexiondb = db.cursor()
+
+        # Consulta para obtener las películas "próximamente"
+        sql_proximamente = "SELECT nombrep, fechap, descripcionp, imgp FROM proximamente"
+        conexiondb.execute(sql_proximamente)
+        res_proximamente = conexiondb.fetchall()
+
+        # Procesar los resultados en una lista de diccionarios
+        proximas_peliculas = [
+            {
+                'nombrep': campo[0],
+                'fechap': campo[1],
+                'descripcionp': campo[2],
+                'imgp': campo[3]
+            }
+            for campo in res_proximamente
+        ]
+
+        # Renderizar la plantilla y pasar los datos de las películas
+        return render_template("Proximamente.html", listap=proximas_peliculas)
+    except mysqlcon.Error as e:
+        return f"Error al obtener películas: {str(e)}", 500
+    finally:
+        # Cerrar la conexión a la base de datos
+        conexiondb.close()
+@app.route("/Promociones")
+def proxi():
+    return render_template('Promociones.html')
 if __name__ == '__main__':
     app.run()
