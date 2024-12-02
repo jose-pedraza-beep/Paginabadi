@@ -497,34 +497,52 @@ def Proximamente():
         # Cerrar la conexión a la base de datos
         conexiondb.close()
 # Ruta para mostrar las promociones de productos
+
+
+
+
 @app.route('/Promociones')
 @login_required
 def promociones():
     conexiondb = db.cursor()
 
-    # Consulta para obtener todas las promociones (comida, vasos, palomeras)
+    # Consulta para obtener la lista de promociones
     sql_promociones = """
-        SELECT id, nombre, descripcion, precio, img_url, tipo_producto
+        SELECT id, nombre, descripcion, precio, img_url 
         FROM promociones
     """
     conexiondb.execute(sql_promociones)
-    promociones_res = conexiondb.fetchall()
+    res_promociones = conexiondb.fetchall()
 
+    # Consulta para obtener el carrito del usuario actual
+    sql_carrito = """
+       SELECT c.id, p.nombre, c.cantidad, (p.precio * c.cantidad) AS total
+        FROM carrito2 c
+        JOIN promociones p ON c.id_promocion = p.id
+        WHERE c.id_usuario = %s
+    """
+    conexiondb.execute(sql_carrito, (current_user.id,))
+    res_carrito = conexiondb.fetchall()
     conexiondb.close()
 
-    # Procesar los datos de las promociones
+    # Procesar datos de promociones
     promociones = [
-        {'id': campo[0], 'nombre': campo[1], 'descripcion': campo[2], 'precio': campo[3], 'img_url': campo[4], 'tipo_producto': campo[5]}
-        for campo in promociones_res
+        { 'id': campo[0], 'nombre': campo[1], 'descripcion': campo[2], 'precio': campo[3], 'img_url': campo[4]}
+        for campo in res_promociones
     ]
 
-    return render_template("Promociones.html", promociones=promociones)
+    # Procesar datos del carrito
+    carrito = [
+        { 'id': campo[0], 'nombre': campo[1], 'cantidad': campo[2], 'total': campo[3]}
+        for campo in res_carrito
+    ]
 
+    return render_template("Promociones.html", promociones=promociones, carrito=carrito)
 
 @app.route('/agregar_promocion_carrito', methods=['POST'])
 @login_required
 def agregar_promocion_carrito():
-    data = request.get_json()  # Leer datos enviados en formato JSON
+    data = request.get_json()
     id_promocion = data.get('id_promocion')
 
     if not id_promocion:
@@ -533,40 +551,27 @@ def agregar_promocion_carrito():
     try:
         conexiondb = db.cursor()
 
-        # Verificar si la promoción tiene suficiente stock
-        sql_stock = """
-            SELECT stock FROM promociones WHERE id = %s AND activa = TRUE
-        """
-        conexiondb.execute(sql_stock, (id_promocion,))
-        stock = conexiondb.fetchone()
-
-        if not stock or stock[0] <= 0:
-            return jsonify({'error': 'La promoción no está disponible o no hay stock suficiente'}), 400
-
         # Verificar si la promoción ya está en el carrito del usuario
         sql_verificar = """
-            SELECT id, cantidad FROM carrito WHERE id_usuario = %s AND id_promocion = %s
+            SELECT id, cantidad 
+            FROM carrito2 
+            WHERE id_usuario = %s AND id_promocion = %s
         """
         conexiondb.execute(sql_verificar, (current_user.id, id_promocion))
         item = conexiondb.fetchone()
 
         if item:
-            # Si existe, aumentar cantidad solo si hay stock disponible
-            nueva_cantidad = item[1] + 1
-            if nueva_cantidad > stock[0]:
-                return jsonify({'error': 'No hay suficiente stock para agregar más unidades'}), 400
-
-            # Si hay suficiente stock, actualizar la cantidad en el carrito
+            # Si existe, aumentar la cantidad
             sql_actualizar = """
-                UPDATE carrito
-                SET cantidad = cantidad + 1
+                UPDATE carrito2 
+                SET cantidad = cantidad + 1 
                 WHERE id = %s
             """
             conexiondb.execute(sql_actualizar, (item[0],))
         else:
             # Si no existe, agregar la promoción al carrito
             sql_insertar = """
-                INSERT INTO carrito (id_usuario, id_promocion, cantidad)
+                INSERT INTO carrito2 (id_usuario, id_promocion, cantidad) 
                 VALUES (%s, %s, 1)
             """
             conexiondb.execute(sql_insertar, (current_user.id, id_promocion))
@@ -578,8 +583,6 @@ def agregar_promocion_carrito():
         return jsonify({'error': str(e)}), 500
     finally:
         conexiondb.close()
-
-
 @app.route('/modificar_cantidad_promocion_carrito', methods=['PUT'])
 @login_required
 def modificar_cantidad_promocion_carrito():
@@ -593,36 +596,20 @@ def modificar_cantidad_promocion_carrito():
     try:
         conexiondb = db.cursor()
 
-        # Verificar el stock de la promoción
-        sql_stock = """
-            SELECT p.stock FROM carrito c
-            JOIN promociones p ON c.id_promocion = p.id
-            WHERE c.id = %s AND c.id_usuario = %s
-        """
-        conexiondb.execute(sql_stock, (id_carrito, current_user.id))
-        stock = conexiondb.fetchone()
-
-        if not stock or nueva_cantidad > stock[0]:
-            return jsonify({'error': 'No hay suficiente stock para esta cantidad'}), 400
-
-        # Actualizar la cantidad en el carrito
+        # Actualizar la cantidad de la promoción en el carrito
         sql_actualizar = """
-            UPDATE carrito
-            SET cantidad = %s
+            UPDATE carrito2 
+            SET cantidad = %s 
             WHERE id = %s AND id_usuario = %s
         """
         conexiondb.execute(sql_actualizar, (nueva_cantidad, id_carrito, current_user.id))
         db.commit()
 
         return jsonify({'success': 'Cantidad modificada'}), 200
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
         conexiondb.close()
-
-
-
 @app.route('/eliminar_promocion_carrito/<int:id_carrito>', methods=['DELETE'])
 @login_required
 def eliminar_promocion_carrito(id_carrito):
@@ -630,7 +617,7 @@ def eliminar_promocion_carrito(id_carrito):
         conexiondb = db.cursor()
 
         # Eliminar la promoción del carrito
-        sql_eliminar = "DELETE FROM carrito WHERE id = %s AND id_usuario = %s"
+        sql_eliminar = "DELETE FROM carrito2 WHERE id = %s AND id_usuario = %s"
         conexiondb.execute(sql_eliminar, (id_carrito, current_user.id))
         db.commit()
 
@@ -640,16 +627,15 @@ def eliminar_promocion_carrito(id_carrito):
     finally:
         conexiondb.close()
 
-
 @app.route('/carrito_promociones_datos', methods=['GET'])
 @login_required
 def carrito_promociones_datos():
     conexiondb = db.cursor()
 
-    # Consulta para obtener las promociones del carrito con su precio total
+    # Obtener los datos de las promociones en el carrito
     sql_carrito = """
         SELECT c.id, p.nombre, p.precio, c.cantidad, (p.precio * c.cantidad) AS total
-        FROM carrito c
+        FROM carrito2 c
         JOIN promociones p ON c.id_promocion = p.id
         WHERE c.id_usuario = %s
     """
@@ -663,39 +649,37 @@ def carrito_promociones_datos():
         for item in res_carrito
     ]
     return jsonify({'items': carrito})
-
-
 @app.route('/comprar_promociones_carrito', methods=['POST'])
 @login_required
 def comprar_promociones_carrito():
     try:
         conexiondb = db.cursor()
 
-        # Calcular el total y obtener las promociones compradas
+        # Obtener el total de la compra y los productos
         sql_total = """
             SELECT p.nombre, c.cantidad, p.precio, (p.precio * c.cantidad) AS total
-            FROM carrito c
+            FROM carrito2 c
             JOIN promociones p ON c.id_promocion = p.id
             WHERE c.id_usuario = %s
         """
         conexiondb.execute(sql_total, (current_user.id,))
-        promociones_compradas = conexiondb.fetchall()
+        productos_comprados = conexiondb.fetchall()
 
-        total = sum([promocion[3] for promocion in promociones_compradas])  # Sumar los totales de las promociones
+        total = sum([producto[3] for producto in productos_comprados])  # Sumar los totales de los productos
 
-        # Eliminar todas las promociones del carrito
-        sql_eliminar = "DELETE FROM carrito WHERE id_usuario = %s"
+        # Eliminar los productos del carrito
+        sql_eliminar = "DELETE FROM carrito2 WHERE id_usuario = %s"
         conexiondb.execute(sql_eliminar, (current_user.id,))
         db.commit()
 
         # Crear el ticket de compra
         ticket = {
-            'productos': promociones_compradas,
+            'productos': productos_comprados,
             'total': total,
             'fecha': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
-        return jsonify({'ticket': ticket, 'success': 'Compra realizada correctamente'})
+        return jsonify({'ticket': ticket, 'success': 'Compra realizada correctamente'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
