@@ -1,13 +1,185 @@
 {% extends "index.html" %}
-{% block Peliculas %}
-        <table border="1px">
+
+{% block Promociones %}
+<div id="promociones-container">
+    <h1>Promociones</h1>
+    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        {% for promocion in promociones %}
+        <div class="promocion-item" style="border: 1px solid #ccc; border-radius: 8px; width: 200px; text-align: center; padding: 10px;">
+            <img src="{{ promocion.img_url }}" alt="{{ promocion.nombre }}" style="width: 100%; height: 150px; object-fit: cover;">
+            <h3>{{ promocion.nombre }}</h3>
+            <p>{{ promocion.descripcion }}</p>
+            <p><strong>Precio:</strong> ${{ promocion.precio }}</p>
+            <button onclick="agregarAlCarrito({{ promocion.id }})" style="background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer;">
+                Agregar al Carrito
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="carrito-container" style="margin-top: 30px;">
+    <h2>Carrito de Compras</h2>
+    <table border="1" style="width: 100%; border-collapse: collapse;">
+        <thead>
             <tr>
-                <th>s3</th>
-                <th>s3</th>
-                <th>s3</th>
-                <th>s3</th>
-                <th>s3</th>
-                <th>s3</th>
+                <th>Producto</th>
+                <th>Precio Unitario</th>
+                <th>Cantidad | Total</th>
+                <th>Total</th>
             </tr>
-        </table>
+        </thead>
+        <tbody id="carrito-body">
+            {% for item in carrito %}
+            <tr id="carrito-item-{{ item.id }}">
+                <td>{{ item.nombre }}</td>
+                <td>${{ item.precio }}</td>
+                <td>
+                    <input type="number" id="cantidad-{{ item.id }}" value="{{ item.cantidad }}" min="1" style="width: 50px; text-align: center;">
+                </td>
+                <td>${{ item.total }}</td>
+                <td>
+                    <button onclick="modificarCantidad({{ item.id }})" style="background-color: #2196F3; color: white; padding: 5px; border: none; cursor: pointer;">
+                        Modificar
+                    </button>
+                    <button onclick="eliminarDelCarrito({{ item.id }})" style="background-color: #f44336; color: white; padding: 5px; border: none; cursor: pointer;">
+                        Eliminar
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div id="mensajes-carrito" style="margin-top: 10px; color: green;"></div>
+    <button onclick="comprarCarrito()" style="background-color: #FF9800; color: white; padding: 10px; border: none; margin-top: 20px; cursor: pointer;">
+        Comprar
+    </button>
+</div>
+
+<script>
+    const mensajesCarrito = document.getElementById("mensajes-carrito");
+
+    // Función para agregar una promoción al carrito
+    function agregarAlCarrito(idPromocion) {
+        fetch('/agregar_promocion_carrito', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ id_promocion: idPromocion })
+        }).then(response => response.json())
+        .then(data => {
+            mensajesCarrito.textContent = data.success || data.error;
+            actualizarCarrito();
+        });
+    }
+
+    // Función para actualizar el carrito dinámicamente
+    function actualizarCarrito() {
+        fetch('/carrito_promociones_datos')
+        .then(response => response.json())
+        .then(data => {
+            const carritoBody = document.getElementById('carrito-body');
+            carritoBody.innerHTML = data.items.map(item => `  
+                <tr id="carrito-item-${item.id}">
+                    <td>${item.nombre}</td>
+                    <td>${item.precio}</td>
+                    <td>
+                        <input type="number" id="cantidad-${item.id}" value="${item.cantidad}" min="1" style="width: 50px; text-align: center;">
+                    </td>
+                    <td>${item.total}</td>
+                    <td>
+                        <button onclick="modificarCantidad(${item.id})" style="background-color: #2196F3; color: white; padding: 5px; border: none; cursor: pointer;">
+                            Modificar
+                        </button>
+                        <button onclick="eliminarDelCarrito(${item.id})" style="background-color: #f44336; color: white; padding: 5px; border: none; cursor: pointer;">
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        });
+    }
+
+    // Función para eliminar una promoción del carrito
+    function eliminarDelCarrito(idCarrito) {
+        fetch('/eliminar_promocion_carrito/' + idCarrito, {
+            method: 'DELETE'
+        }).then(response => response.json())
+        .then(data => {
+            mensajesCarrito.textContent = data.success || data.error;
+            actualizarCarrito();
+        });
+    }
+
+    // Función para modificar la cantidad de una promoción en el carrito
+    function modificarCantidad(idCarrito) {
+        const cantidadInput = document.getElementById(`cantidad-${idCarrito}`);
+        const nuevaCantidad = parseInt(cantidadInput.value);
+
+        if (nuevaCantidad < 1) {
+            mensajesCarrito.textContent = "La cantidad debe ser mayor o igual a 1.";
+            return;
+        }
+
+        fetch('/modificar_cantidad_promocion_carrito', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ id_carrito: idCarrito, cantidad: nuevaCantidad })
+        }).then(response => response.json())
+        .then(data => {
+            mensajesCarrito.textContent = data.success || data.error;
+            actualizarCarrito();
+        });
+    }
+
+    // Función para comprar todas las promociones del carrito
+    function comprarCarrito() {
+        fetch('/comprar_promociones_carrito', {
+            method: 'POST'
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const ticket = data.ticket;
+
+                // Crear el contenido del ticket
+                let ticketHtml = `<h3>Ticket de Compra</h3>
+                                  <p><strong>Fecha:</strong> ${ticket.fecha}</p>
+                                  <table border="1" style="width: 100%; border-collapse: collapse;">
+                                      <thead>
+                                          <tr>
+                                              <th>Producto</th>
+                                              <th>Cantidad</th>
+                                              <th>Precio</th>
+                                              <th>Total</th>
+                                          </tr>
+                                      </thead>
+                                      <tbody>`;
+
+                ticket.productos.forEach(producto => {
+                    ticketHtml += `<tr>
+                                      <td>${producto[0]}</td>
+                                      <td>${producto[1]}</td>
+                                      <td>$${producto[2]}</td>
+                                      <td>$${producto[3]}</td>
+                                  </tr>`;
+                });
+
+                ticketHtml += `</tbody></table>
+                               <p><strong>Total:</strong> $${ticket.total}</p>`;
+
+                // Mostrar el ticket en el contenedor de mensajes
+                mensajesCarrito.innerHTML = ticketHtml;
+
+                // Vaciar el carrito
+                actualizarCarrito(); // Si el carrito está vacío, esta función limpiará la vista
+            } else {
+                mensajesCarrito.textContent = data.error || 'Hubo un error con la compra';
+            }
+        });
+    }
+</script>
+
 {% endblock %}

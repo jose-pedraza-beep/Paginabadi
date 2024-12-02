@@ -1,5 +1,5 @@
-
 {% extends "index.html" %}
+
 {% block Alimentos %}
 <div id="snack-container">
     <h1>Snacks y Bebidas</h1>
@@ -24,15 +24,14 @@
         <thead>
             <tr>
                 <th>Producto</th>
-                <th>Precio</th>
-                <th>Cantidad</th>
+                <th>Precio Unitario</th>
+                <th>Cantidad | Total</th>
                 <th>Total</th>
-                <th>Acción</th>
             </tr>
         </thead>
         <tbody id="carrito-body">
             {% for item in carrito %}
-            <tr>
+            <tr id="carrito-item-{{ item.id }}">
                 <td>{{ item.nombre }}</td>
                 <td>${{ item.precio }}</td>
                 <td>
@@ -51,9 +50,15 @@
             {% endfor %}
         </tbody>
     </table>
+    <div id="mensajes-carrito" style="margin-top: 10px; color: green;"></div>
+    <button onclick="comprarCarrito()" style="background-color: #FF9800; color: white; padding: 10px; border: none; margin-top: 20px; cursor: pointer;">
+        Comprar
+    </button>
 </div>
 
 <script>
+    const mensajesCarrito = document.getElementById("mensajes-carrito");
+
     // Función para agregar un producto al carrito
     function agregarAlCarrito(idAlimento) {
         fetch('/agregar_carrito', {
@@ -62,13 +67,37 @@
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ id_alimento: idAlimento })
-        }).then(response => {
-            if (response.ok) {
-                alert('Producto agregado al carrito');
-                location.reload();
-            } else {
-                alert('Error al agregar producto al carrito');
-            }
+        }).then(response => response.json())
+        .then(data => {
+            mensajesCarrito.textContent = data.success || data.error;
+            actualizarCarrito();
+        });
+    }
+
+    // Función para actualizar el carrito dinámicamente
+    function actualizarCarrito() {
+        fetch('/carrito_datos')
+        .then(response => response.json())
+        .then(data => {
+            const carritoBody = document.getElementById('carrito-body');
+            carritoBody.innerHTML = data.items.map(item => `
+                <tr id="carrito-item-${item.id}">
+                    <td>${item.nombre}</td>
+                    <td>${item.precio}</td>
+                    <td>
+                        <input type="number" id="cantidad-${item.id}" value="${item.cantidad}" min="1" style="width: 50px; text-align: center;">
+                    </td>
+                    <td>${item.total}</td>
+                    <td>
+                        <button onclick="modificarCantidad(${item.id})" style="background-color: #2196F3; color: white; padding: 5px; border: none; cursor: pointer;">
+                            Modificar
+                        </button>
+                        <button onclick="eliminarDelCarrito(${item.id})" style="background-color: #f44336; color: white; padding: 5px; border: none; cursor: pointer;">
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
         });
     }
 
@@ -76,13 +105,10 @@
     function eliminarDelCarrito(idCarrito) {
         fetch('/eliminar_carrito/' + idCarrito, {
             method: 'DELETE'
-        }).then(response => {
-            if (response.ok) {
-                alert('Producto eliminado del carrito');
-                location.reload();
-            } else {
-                alert('Error al eliminar producto del carrito');
-            }
+        }).then(response => response.json())
+        .then(data => {
+            mensajesCarrito.textContent = data.success || data.error;
+            actualizarCarrito();
         });
     }
 
@@ -92,7 +118,7 @@
         const nuevaCantidad = parseInt(cantidadInput.value);
 
         if (nuevaCantidad < 1) {
-            alert('La cantidad debe ser mayor o igual a 1.');
+            mensajesCarrito.textContent = "La cantidad debe ser mayor o igual a 1.";
             return;
         }
 
@@ -102,14 +128,58 @@
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ id_carrito: idCarrito, cantidad: nuevaCantidad })
-        }).then(response => {
-            if (response.ok) {
-                alert('Cantidad modificada correctamente');
-                location.reload();
+        }).then(response => response.json())
+        .then(data => {
+            mensajesCarrito.textContent = data.success || data.error;
+            actualizarCarrito();
+        });
+    }
+
+    // Función para comprar todos los productos del carrito
+    function comprarCarrito() {
+        fetch('/comprar_carrito', {
+            method: 'POST'
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const ticket = data.ticket;
+
+                // Crear el contenido del ticket
+                let ticketHtml = `<h3>Ticket de Compra</h3>
+                                  <p><strong>Fecha:</strong> ${ticket.fecha}</p>
+                                  <table border="1" style="width: 100%; border-collapse: collapse;">
+                                      <thead>
+                                          <tr>
+                                              <th>Producto</th>
+                                              <th>Cantidad</th>
+                                              <th>Precio</th>
+                                              <th>Total</th>
+                                          </tr>
+                                      </thead>
+                                      <tbody>`;
+
+                ticket.productos.forEach(producto => {
+                    ticketHtml += `<tr>
+                                      <td>${producto[0]}</td>
+                                      <td>${producto[1]}</td>
+                                      <td>$${producto[2]}</td>
+                                      <td>$${producto[3]}</td>
+                                  </tr>`;
+                });
+
+                ticketHtml += `</tbody></table>
+                               <p><strong>Total:</strong> $${ticket.total}</p>`;
+
+                // Mostrar el ticket en el contenedor de mensajes
+                mensajesCarrito.innerHTML = ticketHtml;
+
+                // Vaciar el carrito
+                actualizarCarrito(); // Si el carrito está vacío, esta función limpiará la vista
             } else {
-                alert('Error al modificar la cantidad');
+                mensajesCarrito.textContent = data.error || 'Hubo un error con la compra';
             }
         });
     }
 </script>
+
 {% endblock %}
