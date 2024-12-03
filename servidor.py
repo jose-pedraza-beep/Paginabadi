@@ -684,6 +684,28 @@ def comprar_promociones_carrito():
         return jsonify({'error': str(e)}), 500
     finally:
         conexiondb.close()
+@app.route('/cartelera')
+def cartel():
+    return render_template("cartelera.html")
 
+@app.route('/quienes_somos')
+def quien():
+    return render_template("quienes_somos.html")
+
+@app.route('/legales')
+def legal():
+    return render_template("legales.html")
+
+@app.route('/contacto')
+def contacto():
+    return render_template("contacto.html")
+
+@app.route('/politicas')
+def politicas():
+    return render_template("politicas.html")
+
+@app.route('/terminos')
+def terminos():
+    return render_template("terminos.html")
 if __name__ == '__main__':
     app.run()

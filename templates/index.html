@@ -36,12 +36,39 @@
     </header>
 
     <main>
-        {% block Peliculas %}     {% endblock %}
-        {% block Alimentos%}      {% endblock %}
-        {% block CompraBoletos %} {% endblock %}
-        {% block Proximamente%}   {% endblock %}
-        {%block Promociones%}   {% endblock%}
+        <!-- Bloque Películas -->
+        {% block Peliculas %}
+        <div id="peliculas" style="display: block;">
+            <h2>Películas</h2>
+            <p>Bienvenido a nuestra sección de películas. Consulta las últimas novedades y estrenos.</p>
+        </div>
+        {% endblock %}
+    
+        <!-- Bloque Alimentos -->
+        {% block Alimentos %}
+        <div id="alimentos" style="display: none;">
+            <h2>Alimentos</h2>
+            <p>Descubre nuestras deliciosas opciones para acompañar tu película favorita.</p>
+        </div>
+        {% endblock %}
+    
+        <!-- Bloque Promociones -->
+        {% block Promociones %}
+        <div id="promociones" style="display: none;">
+            <h2>Promociones</h2>
+            <p>Aprovecha nuestras increíbles promociones y disfruta al máximo de tu experiencia en el cine.</p>
+        </div>
+        {% endblock %}
+    
+        <!-- Bloque Próximamente -->
+        {% block Proximamente %}
+        <div id="proximamente" style="display: none;">
+            <h2>Próximamente</h2>
+            <p>No te pierdas los estrenos más esperados. ¡Próximamente en CineX!</p>
+        </div>
+        {% endblock %}
     </main>
+    
 
     <footer>
         <div class="enlaces-footer">
@@ -49,7 +76,17 @@
             <a href="/quienes_somos">Quiénes Somos</a> |
             <a href="/legales">Legales</a> |
             <a href="/contacto">Contacto</a>
+            {% block cartelera %}{% endblock %}
+            {% block quienes_somos %}{% endblock %}
+            {% block legales %}
+                {% block terminos %}
+                {% block politicas %}
+                {% endblock %}
+                {% endblock %}
+            {% endblock %}
+            {% block contacto %}{% endblock %}
         </div>
     </footer>
+
 </body>
 </html>
