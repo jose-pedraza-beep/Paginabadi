@@ -12,15 +12,16 @@
             <img src="" alt="Logo">
             <select id="opciones" name="opciones">
                 <option value="" disabled selected>Seleccione una opción</option>
-                <option value="opcion1">Menchaca</option>
-                <option value="opcion2">Cerrito colorado</option>
-                <option value="opcion3">Valdio</option>
+                <option value="menchaca">Menchaca</option>
+                <option value="cerrito">Cerrito Colorado</option>
+                <option value="valdio">Valdio</option>
             </select>
+            <span id="cine-seleccionado" style="display:none;">Cine seleccionado: <span id="cine-nombre"></span></span>
+
             {% if current_user.is_authenticated %}
             <span>
                 Usuario: {{ current_user.nombre }}
                 <a href="/logout">Cerrar sesión</a>
-                <!-- Botón "Comprobar boletos" -->
                 <form action="/generar_qr" method="get" style="display: inline;">
                     <button type="submit" style="margin-left: 10px;">Comprobar boletos</button>
                 </form>
@@ -68,7 +69,6 @@
         </div>
         {% endblock %}
     </main>
-    
 
     <footer>
         <div class="enlaces-footer">
@@ -80,13 +80,38 @@
             {% block quienes_somos %}{% endblock %}
             {% block legales %}
                 {% block terminos %}
-                {% block politicas %}
-                {% endblock %}
+                {% block politicas %}{% endblock %}
                 {% endblock %}
             {% endblock %}
             {% block contacto %}{% endblock %}
         </div>
     </footer>
 
+    <script>
+        // Detecta el cambio en el select y muestra el cine seleccionado
+        document.getElementById('opciones').addEventListener('change', function() {
+            var cineSeleccionado = this.value;
+            var mensajeCine = '';
+
+            // Asignar el mensaje según la opción seleccionada
+            switch(cineSeleccionado) {
+                case 'menchaca':
+                    mensajeCine = 'Menchaca';
+                    break;
+                case 'cerrito':
+                    mensajeCine = 'Cerrito Colorado';
+                    break;
+                case 'valdio':
+                    mensajeCine = 'Valdio';
+                    break;
+                default:
+                    mensajeCine = '';
+            }
+
+            // Muestra el mensaje del cine
+            document.getElementById('cine-nombre').textContent = mensajeCine;
+            document.getElementById('cine-seleccionado').style.display = 'inline';
+        });
+    </script>
 </body>
 </html>
